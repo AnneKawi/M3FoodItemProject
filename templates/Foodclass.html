@@ -1,0 +1,47 @@
+<html>
+<head>
+    <link rel='stylesheet' href="/static/styles.css">
+</head>
+
+
+<body>
+    <div class = 'pane'>
+        <div class = 'header'>
+            <h1>{{ foodclass.name }}</h1>
+        </div>
+
+        <a href = #>Create New Item</a>
+
+        {% for i in items %}
+        <div class = 'nameAndPrice'>
+            <h2>{{i.name}}</h2>
+            <div class = 'description'>
+                <p>{{i.description}}</p>
+            </div>
+
+            <span class = 'price'>Price: {{i.price}} €</span><br>
+            <span class = 'typical size'>Typical Size: {{i.typical_size}}</span>
+        </div>
+
+
+
+        <div>
+            <span class = 'need_to_shop'><p>We need to buy: {{i.need_to_shop}} </p></span>
+        </div>
+
+        <div class = "editdeletepane">
+
+            <a href=# >Edit</a>
+            <a href=# >
+            Delete</a>
+        </div>
+        <hr>
+
+        {% endfor %}
+
+
+
+    </div>
+    </div>
+</body>
+</html>

@@ -3,7 +3,7 @@ Place your catalog project in this directory.
 
 - run python basicdata.py to populate the db
 - run views.py to start the server
-- runs on localhost:5000/
+- runs on localhost:8000/
 
 APIs:
 '/foodclass/foodclass_id_number/food.JSON' returns a json of all the food Items in this FoodClass

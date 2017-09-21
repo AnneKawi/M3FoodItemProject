@@ -30,18 +30,8 @@
 
         {% for foodclass in foodclasses %}
         <div class = 'nameAndPrice'>
-            <span class = 'name'><p>{{foodclass.name}}</p></span>
+            <a href="{{url_for('SingleFoodClass', foodclass_id = foodclass.id) }}" class = 'name'><p>{{foodclass.name}}</p></span>
         </div>
-
-
-
-        <div class = "editdeletepane">
-
-            <a href=# >Edit</a>
-            <a href=# >Delete</a>
-        </div>
-
-
 
 
         {% endfor %}

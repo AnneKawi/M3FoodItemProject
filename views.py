@@ -197,8 +197,8 @@ def Catalog():
 @app.route('/Foodclasses/<int:foodclass_id>/')
 def SingleFoodClass(foodclass_id):
     foodclass = session.query(FoodClass).filter_by(id=foodclass_id).one()
-    items = session.query(FoodItem).filter_by(foodclass_id=foodclass.id)
-    return render_template('catalog.html', foodclass = foodclass, items = items)
+    items = session.query(FoodItem).filter_by(foodclass_id=foodclass.id).all()
+    return render_template('Foodclass.html', foodclass = foodclass, items = items)
 
 
 
@@ -250,4 +250,4 @@ def SingleFoodClass(foodclass_id):
 if __name__ == '__main__':
     app.debug = True
     #app.config['SECRET_KEY'] = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=8000)
