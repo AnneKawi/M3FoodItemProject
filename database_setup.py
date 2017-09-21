@@ -5,6 +5,9 @@ from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
+from passlib.apps import custom_app_context as pwd_context
+import random, string
+from itsdangerous import(TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
 
 
 Base = declarative_base()
@@ -69,7 +72,7 @@ class FoodItem(Base):
     name = Column(String(80), nullable=False)
     id = Column(Integer, primary_key=True)
     description = Column(String(250))
-    price = Column(String(8))
+    price = Column(String(10))
     typical_size = Column(String(20))
     need_to_shop = Column(Integer)
     foodclass_id = Column(Integer, ForeignKey('foodclass.id'))
