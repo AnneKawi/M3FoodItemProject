@@ -57,6 +57,17 @@ def verify_password(username_or_token, password):
     g.user = user
     return True
 
+@app.route('/login')
+def showLogin():
+    #Random String generieren (mit Großbuchstaben und Zahlen)
+    state = ''.join(random.choice(string.ascii_uppercase + string.digits)
+                    for x in xrange(32))
+    #diesen String in der login-session als state speichern
+    login_session['state'] = state
+    #render login_template
+    return render_template('login.html', STATE=state)
+
+
 @app.route('/clientOAuth')
 def start():
     return render_template('clientOAuth.html')
@@ -200,6 +211,18 @@ def SingleFoodClass(foodclass_id):
     items = session.query(FoodItem).filter_by(foodclass_id=foodclass.id).all()
     return render_template('Foodclass.html', foodclass = foodclass, items = items)
 
+@app.route('/Foodclasses/NewClass/', methods=['GET', 'POST'])
+def NewFoodClass():
+#  if 'username' not in login_session:
+#      return redirect('/login')
+  if request.method == 'POST':
+      foodclass = FoodClass(name = request.form['name'], creator_id=login_session['user_id'])
+      session.add(foodclass)
+      flash('New Foodclass %s Successfully Created' % foodclass.name)
+      session.commit()
+      return redirect(url_for('/catalog'))
+  else:
+      return render_template('newFoodClass.html')
 
 
 
