@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 from models import Base, User
-from flask import Flask, jsonify, request, url_for, abort, g, render_template
+from flask import Flask, jsonify, request, url_for, abort, g, render_template, redirect, flash
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
@@ -7,7 +8,8 @@ from sqlalchemy import create_engine
 from flask.ext.httpauth import HTTPBasicAuth
 import json
 
-#NEW IMPORTS
+from database_setup import Base, User, FoodClass, FoodItem
+
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import httplib2
@@ -16,13 +18,13 @@ import requests
 
 auth = HTTPBasicAuth()
 
+app = Flask(__name__)
 
-engine = create_engine('sqlite:///usersWithOAuth.db')
-
+engine = create_engine('sqlite:///foodlist.db')
 Base.metadata.bind = engine
+
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
-app = Flask(__name__)
 
 
 CLIENT_ID = json.loads(
@@ -170,6 +172,69 @@ def get_user(id):
 @auth.login_required
 def get_resource():
     return jsonify({ 'data': 'Hello, %s!' % g.user.username })
+
+#Making an API-Endpoint (GET-Request)
+@app.route('/foodclass/<int:foodclass_id>/food/JSON')
+def foodclassFoodJSON(foodclass_id):
+    restaurant = session.query(FoodClass).filter_by(id= foodclass_id).one()
+    items = session.query(FoodItem).filter_by(foodclass_id=foodclas.id).all()
+    return jsonify(FoodItems=[i.serialize for i in items])
+
+@app.route('/foodclass/<int:foodclass_id>/food/<int:food_id>/JSON')
+def foodclassFoodItemJSON(foodclass_id, food_id):
+    item = session.query(FoodItem).filter_by(id=food_id, foodclass_id=foodclass_id).one()
+    return jsonify(FoodItem=item.serialize)
+
+
+#Making the normal Webpage
+@app.route('/')
+@app.route('/restaurants/<int:restaurant_id>/') # => Beispiel für das rendering von Templates
+def restaurantMenu(restaurant_id):
+    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
+    items = session.query(MenuItem).filter_by(restaurant_id=restaurant.id)
+    return render_template('menu.html', restaurant = restaurant, items = items) #! die templates müssen in einem 'templates'-Unterordner vom Order in dem diese Datei liegt, sein
+
+# Task 1: Create route for newMenuItem function here
+@app.route('/restaurants//<int:restaurant_id>/new/', methods=['GET', 'POST']) # => Handling von GET & POST ermöglichen
+def newMenuItem(restaurant_id):
+    if request.method == 'POST':
+        newItem = MenuItem(name= request.form['name'], restaurant_id = restaurant_id)
+        session.add(newItem)
+        session.commit()
+        flash("new menu item created") # => adding a flash-message to the session (abgerufen werden sie in 'menu.html')
+        return redirect(url_for('restaurantMenu', restaurant_id = restaurant_id))
+    else:
+        return render_template('newMenuItem.html', restaurant_id = restaurant_id)
+
+# Task 2: Create route for editMenuItem function here
+@app.route('/restaurants/<int:restaurant_id>/<int:MenuID>/edit',
+           methods=['GET', 'POST'])
+def editMenuItem(restaurant_id, MenuID):
+    editedItem = session.query(MenuItem).filter_by(id=MenuID).one()
+    if request.method == 'POST':
+        if request.form['name']:
+            editedItem.name = request.form['name']
+        session.add(editedItem)
+        session.commit()
+        flash("menu item edited")
+        return redirect(url_for('restaurantMenu', restaurant_id=restaurant_id))
+    else:
+        return render_template(
+            'editMenuItem.html', restaurant_id=restaurant_id, MenuID=MenuID, item=editedItem)
+
+
+# Task 3: Create a route for deleteMenuItem function here
+@app.route('/restaurants/<int:restaurant_id>/<int:menu_id>/delete/', methods=['GET', 'POST'])
+def deleteMenuItem(restaurant_id, menu_id):
+    deletedItem = session.query(MenuItem).filter_by(id=menu_id, restaurant_id=restaurant_id).one()
+    if request.method == 'POST':
+        session.delete(deletedItem)
+        session.commit()
+        flash("Menu item {} deleted".format(deletedItem.name))
+        return redirect(url_for('restaurantMenu', restaurant_id=restaurant_id))
+    else:
+        return render_template(
+            'deleteMenuItem.html', restaurant_id=restaurant_id, menu_id=menu_id, item=deletedItem)
 
 
 

@@ -53,6 +53,14 @@ class FoodClass(Base):
     creator_id = Column(Integer, ForeignKey('user.id'))
     creator = relationship(User)
 
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+        return {
+        'name' : self.name,
+        'id': self.id,
+            }
+
 
 
 class FoodItem(Base):
