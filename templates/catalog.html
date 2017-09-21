@@ -7,13 +7,13 @@
 <body>
     <div class = 'pane'>
         <div class = 'header'>
-            <h1>{{ restaurant.name }}</h1>
+            <h1>The food catalog</h1>
         </div>
 
-        <a href = "{{url_for('newMenuItem', restaurant_id = restaurant.id) }}">Create New Item</a>
+        <a href=# >Create New Item</a>
 
 
-        <div class = 'flash'>
+<!--        <div class = 'flash'>
             {% with messages = get_flashed_messages() %}
             {% if messages %}
 
@@ -26,29 +26,19 @@
             {% endwith %}
 
         </div>
+-->
 
-
-        {% for i in items %}
+        {% for foodclass in foodclasses %}
         <div class = 'nameAndPrice'>
-            <span class = 'name'><p>{{i.name}}</p></span>
-            <span class = 'price'>
-                <p>{{i.price}} </p>
-            </span>
-        </div>
-
-
-
-        <div class = 'description'>
-            <p>{{i.description}}</p>
+            <span class = 'name'><p>{{foodclass.name}}</p></span>
         </div>
 
 
 
         <div class = "editdeletepane">
 
-            <a href="{{url_for('editMenuItem',restaurant_id = restaurant.id, MenuID=i.id)}}" >Edit</a>
-            <a href="{{url_for('deleteMenuItem', restaurant_id = restaurant.id, menu_id=i.id)}}" >
-            Delete</a>
+            <a href=# >Edit</a>
+            <a href=# >Delete</a>
         </div>
 
 
