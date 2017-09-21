@@ -9,5 +9,6 @@ a small website where we can catalog the items we buy for food and can register,
 - basic overview is localhost:8000/catalog
 
 APIs:
-'/foodclass/foodclass_id_number/food.JSON' returns a json of all the food Items in this FoodClass
-'/foodclass/foodclass_id_number/food/fooditem_id_number.JSON' returns a json of the chosen food_item
+'/foodclass/foodclass_id_number/food/JSON' returns a json of all the food Items in this FoodClass
+'/foodclass/foodclass_id_number/food/fooditem_id_number/JSON' returns a json of the chosen food_item
+'/foodclasses/JSON' returns a json with all available foodclasses and their ids

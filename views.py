@@ -43,20 +43,34 @@ def foodclassFoodItemJSON(foodclass_id, food_id):
     return jsonify(FoodItem=item.serialize)
 
 
-#Password verification
-@auth.verify_password
-def verify_password(username_or_token, password):
-    #Try to see if it's a token first
-    user_id = User.verify_auth_token(username_or_token)
-    if user_id:
-        user = session.query(User).filter_by(id = user_id).one()
-    else:
-        user = session.query(User).filter_by(username = username_or_token).first()
-        if not user or not user.verify_password(password):
-            return False
-    g.user = user
-    return True
+@app.route('/foodclasses/JSON')
+def foodclassesJSON():
+    foodclasses = session.query(FoodClass).all()
+    return jsonify(foodclasses= [r.serialize for r in foodclasses])
 
+
+# User Helper Functions
+def createUser(login_session):
+    newUser = User(name=login_session['username'], email=login_session[
+                   'email'], picture=login_session['picture'])
+    session.add(newUser)
+    session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    return user.id
+
+def getUserInfo(user_id):
+    user = session.query(User).filter_by(id=user_id).one()
+    return user
+
+def getUserID(email):
+    try:
+        user = session.query(User).filter_by(email=email).one()
+        return user.id
+    except:
+        return None
+
+
+# Create anti-forgery state token => mit jedem neuen Login wird dem User ein anderer Token zugeordnet - welcher hilft, den Nutzer als er selbst zu identifizieren
 @app.route('/login')
 def showLogin():
     #Random String generieren (mit Großbuchstaben und Zahlen)
@@ -67,134 +81,117 @@ def showLogin():
     #render login_template
     return render_template('login.html', STATE=state)
 
+@app.route('/gconnect', methods=['POST'])
+def gconnect():
+    # Validate state token - if that token is invalid it will stop talking to the client (thus protecting it and the server)
+    if request.args.get('state') != login_session['state']:
+        response = make_response(json.dumps('Invalid state parameter.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    code = request.data #der komplette id_token mit allen Infos
 
-@app.route('/clientOAuth')
-def start():
-    return render_template('clientOAuth.html')
-
-@app.route('/oauth/<provider>', methods = ['POST'])
-def login(provider):
-    #STEP 1 - Parse the auth code
-    auth_code = request.json.get('auth_code')
-    print "Step 1 - Complete, received auth code %s" % auth_code
-    if provider == 'google':
-        #STEP 2 - Exchange for a token
-        try:
-            # Upgrade the authorization code into a credentials object
-            oauth_flow = flow_from_clientsecrets('client_secrets.json', scope='')
-            oauth_flow.redirect_uri = 'postmessage'
-            credentials = oauth_flow.step2_exchange(auth_code)
-        except FlowExchangeError:
-            response = make_response(json.dumps('Failed to upgrade the authorization code.'), 401)
+    # check des id_token gegen die client_secrets Daten
+    from oauth2client import client, crypt
+    try:
+        idinfo = client.verify_id_token(code, CLIENT_ID)
+        #auf korrekten issuer prüfen
+        if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+            response = make_response(
+            json.dumps("Wrong issuer."), 401)
             response.headers['Content-Type'] = 'application/json'
             return response
+        #gplus-ID rausfischen
+        gplus_id = idinfo['sub']
+    except crypt.AppIdentityError:
+        # Verify that the access token is used for the intended user.
+        userid = idinfo['sub']
+        response = make_response(
+            json.dumps("Token's user ID doesn't match given user ID."), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
-        # Check that the access token is valid.
-        access_token = credentials.access_token
-        url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s' % access_token)
-        h = httplib2.Http()
-        result = json.loads(h.request(url, 'GET')[1])
-        # If there was an error in the access token info, abort.
-        if result.get('error') is not None:
-            response = make_response(json.dumps(result.get('error')), 500)
-            response.headers['Content-Type'] = 'application/json'
+    # Online-Check that the id_token is valid. - returns a nice json-dic with the data in the token
+    access_token = code
+    url = ('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=%s'
+           % access_token)
+    h = httplib2.Http()
+    result = json.loads(h.request(url, 'GET')[1])
+    # If there was an error in the access token info, abort.
+    if result.get('error') is not None:
+        response = make_response(json.dumps(result.get('error')), 500)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
-        # # Verify that the access token is used for the intended user.
-        # gplus_id = credentials.id_token['sub']
-        # if result['user_id'] != gplus_id:
-        #     response = make_response(json.dumps("Token's user ID doesn't match given user ID."), 401)
-        #     response.headers['Content-Type'] = 'application/json'
-        #     return response
+    # Verify that the access token is valid for this app.
+    if result['aud'] != CLIENT_ID:
+        response = make_response(
+            json.dumps("Token's client ID does not match app's."), 401)
+        print "Token's client ID does not match app's."
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
-        # # Verify that the access token is valid for this app.
-        # if result['issued_to'] != CLIENT_ID:
-        #     response = make_response(json.dumps("Token's client ID does not match app's."), 401)
-        #     response.headers['Content-Type'] = 'application/json'
-        #     return response
+    stored_access_token = login_session.get('access_token')
+    stored_gplus_id = login_session.get('gplus_id')
+    if stored_access_token is not None and gplus_id == stored_gplus_id:
+        response = make_response(json.dumps('Current user is already connected.'),
+                                 200)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
-        # stored_credentials = login_session.get('credentials')
-        # stored_gplus_id = login_session.get('gplus_id')
-        # if stored_credentials is not None and gplus_id == stored_gplus_id:
-        #     response = make_response(json.dumps('Current user is already connected.'), 200)
-        #     response.headers['Content-Type'] = 'application/json'
-        #     return response
-        print "Step 2 Complete! Access Token : %s " % credentials.access_token
+    # Store the access token in the session for later use.
+    login_session['access_token'] = access_token
+    login_session['gplus_id'] = gplus_id
 
-        #STEP 3 - Find User or make a new one
+    # Get user info
+    data = result
 
-        #Get user info
-        h = httplib2.Http()
-        userinfo_url =  "https://www.googleapis.com/oauth2/v1/userinfo"
-        params = {'access_token': credentials.access_token, 'alt':'json'}
-        answer = requests.get(userinfo_url, params=params)
+    login_session['username'] = data['name']
+    login_session['picture'] = data['picture']
+    login_session['email'] = data['email']
 
-        data = answer.json()
-
-        name = data['name']
-        picture = data['picture']
-        email = data['email']
-
-
-
-        #see if user exists, if it doesn't make a new one
-        user = session.query(User).filter_by(email=email).first()
-        if not user:
-            user = User(username = name, picture = picture, email = email)
-            session.add(user)
-            session.commit()
-
-
-
-        #STEP 4 - Make token
-        token = user.generate_auth_token(600)
+    # see if user exists, if it doesn't make a new one
+    user_id = getUserID(data["email"])
+    if not user_id:
+        user_id = createUser(login_session)
+    login_session['user_id'] = user_id
 
 
+    output = ''
+    output += '<h1>Welcome, {}!</h1>'.format(login_session['username'])
+    output += '<img src="{} " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '.format(login_session['picture'])
+    flash("you are now logged in as %s" % login_session['username'])
+    print "done!"
+    return output
 
-        #STEP 5 - Send back token to the client
-        return jsonify({'token': token.decode('ascii')})
-
-        #return jsonify({'token': token.decode('ascii'), 'duration': 600})
+@app.route('/gdisconnect')
+def gdisconnect():
+    access_token = login_session.get('access_token')
+    if access_token is None:
+        print 'Access Token is None'
+        response = make_response(json.dumps('Current user not connected.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    print 'In gdisconnect access token is %s', access_token
+    print 'User name is: '
+    print login_session['username']
+    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session['access_token']
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[0]
+    print 'result is '
+    print result
+    if result['status'] == '200':
+        del login_session['access_token']
+        del login_session['gplus_id']
+        del login_session['username']
+        del login_session['email']
+        del login_session['picture']
+        response = make_response(json.dumps('Successfully disconnected.'), 200)
+        response.headers['Content-Type'] = 'application/json'
+        return response
     else:
-        return 'Unrecoginized Provider'
-
-@app.route('/token')
-@auth.login_required
-def get_auth_token():
-    token = g.user.generate_auth_token()
-    return jsonify({'token': token.decode('ascii')})
-
-
-@app.route('/users', methods = ['POST'])
-def new_user():
-    username = request.json.get('username')
-    password = request.json.get('password')
-    if username is None or password is None:
-        print "missing arguments"
-        abort(400)
-
-    if session.query(User).filter_by(username = username).first() is not None:
-        print "existing user"
-        user = session.query(User).filter_by(username=username).first()
-        return jsonify({'message':'user already exists'}), 200#, {'Location': url_for('get_user', id = user.id, _external = True)}
-
-    user = User(username = username)
-    user.hash_password(password)
-    session.add(user)
-    session.commit()
-    return jsonify({ 'username': user.username }), 201#, {'Location': url_for('get_user', id = user.id, _external = True)}
-
-@app.route('/api/users/<int:id>')
-def get_user(id):
-    user = session.query(User).filter_by(id=id).one()
-    if not user:
-        abort(400)
-    return jsonify({'username': user.username})
-
-@app.route('/api/resource')
-@auth.login_required
-def get_resource():
-    return jsonify({ 'data': 'Hello, %s!' % g.user.username })
-
+        response = make_response(json.dumps('Failed to revoke token for given user.', 400))
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
 
 ##Making the normal Webpage
@@ -213,8 +210,8 @@ def SingleFoodClass(foodclass_id):
 
 @app.route('/Foodclasses/NewClass/', methods=['GET', 'POST'])
 def NewFoodClass():
-#  if 'username' not in login_session:
-#      return redirect('/login')
+  if 'username' not in login_session:
+      return redirect('/login')
   if request.method == 'POST':
       foodclass = FoodClass(name = request.form['name'], creator_id=login_session['user_id'])
       session.add(foodclass)
