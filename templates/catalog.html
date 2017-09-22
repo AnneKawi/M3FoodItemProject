@@ -6,8 +6,9 @@
             <h1>The food catalog</h1>
         </div>
 
+        {% if uname != '' %}
         <a href="{{url_for('NewFoodClass') }}" >Create New Foodclass</a>
-
+        {% endif %}
 
         <div class = 'flash'>
             {% with messages = get_flashed_messages() %}

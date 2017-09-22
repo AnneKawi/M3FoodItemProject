@@ -73,6 +73,11 @@ def getUserID(email):
     except:
         return None
 
+def getUserName():
+    if 'username' in login_session:
+        return login_session['username']
+    else:
+        return ''
 
 # Create anti-forgery state token => mit jedem neuen Login wird dem User ein anderer Token zugeordnet - welcher hilft, den Nutzer als er selbst zu identifizieren
 @app.route('/login')
@@ -204,14 +209,14 @@ def gdisconnect():
 def Catalog():
     foodclasses = session.query(FoodClass).all()
     #items = session.query(FoodItem).filter_by(foodclass_id=foodclass.id)
-    return render_template('catalog.html', foodclasses = foodclasses)
+    return render_template('catalog.html', foodclasses = foodclasses, uname = getUserName())
 
 #show items of a single foodclass
 @app.route('/Foodclasses/<int:foodclass_id>/')
 def SingleFoodClass(foodclass_id):
     foodclass = session.query(FoodClass).filter_by(id=foodclass_id).one()
     items = session.query(FoodItem).filter_by(foodclass_id=foodclass.id).all()
-    return render_template('Foodclass.html', foodclass = foodclass, items = items)
+    return render_template('Foodclass.html', foodclass = foodclass, items = items, uname = getUserName())
 
 #create new food class
 @app.route('/Foodclasses/NewClass/', methods=['GET', 'POST'])
@@ -225,7 +230,7 @@ def NewFoodClass():
       session.commit()
       return redirect(url_for('Catalog'))
   else:
-      return render_template('newFoodClass.html')
+      return render_template('newFoodClass.html', uname = getUserName())
 
 #create new food item
 @app.route('/Foodclasses/<int:foodclass_id>/new/', methods=['GET', 'POST']) # => Handling von GET & POST ermöglichen
@@ -244,7 +249,7 @@ def newFoodItem(foodclass_id):
             flash("Food item {} was successfully created".format(request.form['name'])) # => adding a flash-message to the session (abgerufen werden sie in 'catalog.html')
         return redirect(url_for('SingleFoodClass', foodclass_id = foodclass_id))
     else:
-        return render_template('newFoodItem.html', foodclass_id = foodclass_id)
+        return render_template('newFoodItem.html', foodclass_id = foodclass_id, uname = getUserName())
 
 #edit a food item
 @app.route('/Foodclasses/<int:foodclass_id>/<int:FoodItemID>/edit',
@@ -269,7 +274,7 @@ def editFoodItem(foodclass_id, FoodItemID):
         return redirect(url_for('SingleFoodClass', foodclass_id=foodclass_id))
     else:
         return render_template(
-            'editFoodItem.html', foodclass_id=foodclass_id, item=editedItem)
+            'editFoodItem.html', foodclass_id=foodclass_id, item=editedItem, uname = getUserName())
 
 
 #delete a food item
@@ -284,7 +289,7 @@ def deleteFoodItem(foodclass_id, FoodItemID):
         flash('Food item {} successfully deleted'.format(itemToDelete.name))
         return redirect(url_for('SingleFoodClass', foodclass_id=foodclass_id))
     else:
-        return render_template('deleteFoodItem.html', foodclass_id=foodclass_id, item = itemToDelete)
+        return render_template('deleteFoodItem.html', foodclass_id=foodclass_id, item = itemToDelete, uname = getUserName())
 
 
 #!#!#! zur späteren Verwendung eines if in den Htmls

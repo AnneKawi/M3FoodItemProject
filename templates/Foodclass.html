@@ -6,7 +6,9 @@
             <h1>{{ foodclass.name }}</h1>
         </div>
 
+        {% if uname != '' %}
         <a href = "{{url_for('newFoodItem', foodclass_id = foodclass.id) }}">Create New Item</a>
+        {% endif %}
 
         {% for i in items %}
         <div class = 'nameAndPrice'>
@@ -20,17 +22,18 @@
         </div>
 
 
-
         <div>
             <span class = 'need_to_shop'><p>We need to buy: {{i.need_to_shop}} </p></span>
         </div>
 
+        {% if uname != '' %}
         <div class = "editdeletepane">
 
             <a href="{{url_for('editFoodItem', foodclass_id = foodclass.id, FoodItemID = i.id) }}" >Edit</a>
             <a href="{{url_for('deleteFoodItem', foodclass_id = foodclass.id, FoodItemID = i.id) }}" >
             Delete</a>
         </div>
+        {% endif %}
         <hr>
 
         {% endfor %}
