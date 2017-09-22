@@ -206,12 +206,14 @@ def Catalog():
     #items = session.query(FoodItem).filter_by(foodclass_id=foodclass.id)
     return render_template('catalog.html', foodclasses = foodclasses)
 
+#show items of a single foodclass
 @app.route('/Foodclasses/<int:foodclass_id>/')
 def SingleFoodClass(foodclass_id):
     foodclass = session.query(FoodClass).filter_by(id=foodclass_id).one()
     items = session.query(FoodItem).filter_by(foodclass_id=foodclass.id).all()
     return render_template('Foodclass.html', foodclass = foodclass, items = items)
 
+#create new food class
 @app.route('/Foodclasses/NewClass/', methods=['GET', 'POST'])
 def NewFoodClass():
   if 'username' not in login_session:
@@ -225,6 +227,7 @@ def NewFoodClass():
   else:
       return render_template('newFoodClass.html')
 
+#create new food item
 @app.route('/Foodclasses/<int:foodclass_id>/new/', methods=['GET', 'POST']) # => Handling von GET & POST ermöglichen
 def newFoodItem(foodclass_id):
     if 'username' not in login_session:
@@ -232,15 +235,18 @@ def newFoodItem(foodclass_id):
 
     if request.method == 'POST':
         foodclass = session.query(FoodClass).filter_by(id=foodclass_id).one()
-        newItem = FoodItem(name=request.form['name'], description=request.form['description'], price=request.form['price'],
-                           typical_size=request.form['typical_size'], need_to_shop=0, foodclass=foodclass, creator_id=login_session['user_id'])
-        session.add(newItem)
-        session.commit()
-        flash("new food item created") # => adding a flash-message to the session (abgerufen werden sie in 'catalog.html')
+        #careful to only insert returns that actually have a name to it
+        if request.form['name']:
+            newItem = FoodItem(name=request.form['name'], description=request.form['description'], price=request.form['price'],
+                               typical_size=request.form['typical_size'], need_to_shop=0, foodclass=foodclass, creator_id=login_session['user_id'])
+            session.add(newItem)
+            session.commit()
+            flash("Food item {} was successfully created".format(request.form['name'])) # => adding a flash-message to the session (abgerufen werden sie in 'catalog.html')
         return redirect(url_for('SingleFoodClass', foodclass_id = foodclass_id))
     else:
         return render_template('newFoodItem.html', foodclass_id = foodclass_id)
 
+#edit a food item
 @app.route('/Foodclasses/<int:foodclass_id>/<int:FoodItemID>/edit',
            methods=['GET', 'POST'])
 def editFoodItem(foodclass_id, FoodItemID):
@@ -256,14 +262,29 @@ def editFoodItem(foodclass_id, FoodItemID):
         if request.form['price']:
             editedItem.price = request.form['price']
         if request.form['typical_size']:
-            editedItem.course = request.form['typical_size']
+            editedItem.typical_size = request.form['typical_size']
         session.add(editedItem)
         session.commit()
-        flash('Food Item {} Successfully Edited'.format(editedItem.name))
+        flash('Food item {} was successfully edited'.format(editedItem.name))
         return redirect(url_for('SingleFoodClass', foodclass_id=foodclass_id))
     else:
         return render_template(
             'editFoodItem.html', foodclass_id=foodclass_id, item=editedItem)
+
+
+#delete a food item
+@app.route('/Foodclasses/<int:foodclass_id>/items/<int:FoodItemID>/delete', methods = ['GET','POST'])
+def deleteFoodItem(foodclass_id, FoodItemID):
+    if 'username' not in login_session:
+        return redirect('/login')
+    itemToDelete = session.query(FoodItem).filter_by(id = FoodItemID).one()
+    if request.method == 'POST':
+        session.delete(itemToDelete)
+        session.commit()
+        flash('Food item {} successfully deleted'.format(itemToDelete.name))
+        return redirect(url_for('SingleFoodClass', foodclass_id=foodclass_id))
+    else:
+        return render_template('deleteFoodItem.html', foodclass_id=foodclass_id, item = itemToDelete)
 
 
 #!#!#! zur späteren Verwendung eines if in den Htmls
@@ -271,40 +292,7 @@ def editFoodItem(foodclass_id, FoodItemID):
 
 
 
-## Task 2: Create route for editMenuItem function here
-#@app.route('/restaurants/<int:restaurant_id>/<int:MenuID>/edit',
-           #methods=['GET', 'POST'])
-#def editMenuItem(restaurant_id, MenuID):
-    #editedItem = session.query(MenuItem).filter_by(id=MenuID).one()
-    #if request.method == 'POST':
-        #if request.form['name']:
-            #editedItem.name = request.form['name']
-        #session.add(editedItem)
-        #session.commit()
-        #flash("menu item edited")
-        #return redirect(url_for('restaurantMenu', restaurant_id=restaurant_id))
-    #else:
-        #return render_template(
-            #'editMenuItem.html', restaurant_id=restaurant_id, MenuID=MenuID, item=editedItem)
-
-
-## Task 3: Create a route for deleteMenuItem function here
-#@app.route('/restaurants/<int:restaurant_id>/<int:menu_id>/delete/', methods=['GET', 'POST'])
-#def deleteMenuItem(restaurant_id, menu_id):
-    #deletedItem = session.query(MenuItem).filter_by(id=menu_id, restaurant_id=restaurant_id).one()
-    #if request.method == 'POST':
-        #session.delete(deletedItem)
-        #session.commit()
-        #flash("Menu item {} deleted".format(deletedItem.name))
-        #return redirect(url_for('restaurantMenu', restaurant_id=restaurant_id))
-    #else:
-        #return render_template(
-            #'deleteMenuItem.html', restaurant_id=restaurant_id, menu_id=menu_id, item=deletedItem)
-
-
-
 if __name__ == '__main__':
     app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
     app.debug = True
-    #app.config['SECRET_KEY'] = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
     app.run(host='0.0.0.0', port=8000)

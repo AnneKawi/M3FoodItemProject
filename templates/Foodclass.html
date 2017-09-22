@@ -28,7 +28,7 @@
         <div class = "editdeletepane">
 
             <a href="{{url_for('editFoodItem', foodclass_id = foodclass.id, FoodItemID = i.id) }}" >Edit</a>
-            <a href=# >
+            <a href="{{url_for('deleteFoodItem', foodclass_id = foodclass.id, FoodItemID = i.id) }}" >
             Delete</a>
         </div>
         <hr>
