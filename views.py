@@ -4,16 +4,20 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
 
-from flask.ext.httpauth import HTTPBasicAuth
-import json
-
 from database_setup import Base, User, FoodClass, FoodItem
+
+from flask import session as login_session
+from flask_httpauth import HTTPBasicAuth
+import random
+import string
 
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import httplib2
+import json
 from flask import make_response
 import requests
+
 
 auth = HTTPBasicAuth()
 
@@ -217,10 +221,25 @@ def NewFoodClass():
       session.add(foodclass)
       flash('New Foodclass %s Successfully Created' % foodclass.name)
       session.commit()
-      return redirect(url_for('/catalog'))
+      return redirect(url_for('Catalog'))
   else:
       return render_template('newFoodClass.html')
 
+@app.route('/Foodclasses/<int:foodclass_id>/new/', methods=['GET', 'POST']) # => Handling von GET & POST ermöglichen
+def newFoodItem(foodclass_id):
+    if 'username' not in login_session:
+        return redirect('/login')
+
+    if request.method == 'POST':
+        foodclass = session.query(FoodClass).filter_by(id=foodclass_id).one()
+        newItem = FoodItem(name=request.form['name'], description=request.form['description'], price=request.form['price'],
+                           typical_size=request.form['typical_size'], need_to_shop=0, foodclass=foodclass, creator_id=login_session['user_id'])
+        session.add(newItem)
+        session.commit()
+        flash("new food item created") # => adding a flash-message to the session (abgerufen werden sie in 'catalog.html')
+        return redirect(url_for('SingleFoodClass', foodclass_id = foodclass_id))
+    else:
+        return render_template('newFoodItem.html', foodclass_id = foodclass_id)
 
 
 ## Task 1: Create route for newMenuItem function here
@@ -268,6 +287,7 @@ def NewFoodClass():
 
 
 if __name__ == '__main__':
+    app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
     app.debug = True
     #app.config['SECRET_KEY'] = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
     app.run(host='0.0.0.0', port=8000)

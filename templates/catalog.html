@@ -1,19 +1,15 @@
-<html>
-<head>
-    <link rel='stylesheet' href="/static/styles.css">
-</head>
-
-
-<body>
+{% extends "main.html" %}
+{% block content %}
+{% include "header.html" %}
     <div class = 'pane'>
         <div class = 'header'>
             <h1>The food catalog</h1>
         </div>
 
-        <a href="{{url_for('NewFoodClass') }}" >Create New Item</a>
+        <a href="{{url_for('NewFoodClass') }}" >Create New Foodclass</a>
 
 
-<!--        <div class = 'flash'>
+        <div class = 'flash'>
             {% with messages = get_flashed_messages() %}
             {% if messages %}
 
@@ -26,7 +22,7 @@
             {% endwith %}
 
         </div>
--->
+
 
         {% for foodclass in foodclasses %}
         <div class = 'nameAndPrice'>
@@ -40,6 +36,4 @@
 
     </div>
     </div>
-</body>
-</html>
-
+{% endblock %}

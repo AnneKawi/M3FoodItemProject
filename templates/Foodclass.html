@@ -1,16 +1,12 @@
-<html>
-<head>
-    <link rel='stylesheet' href="/static/styles.css">
-</head>
-
-
-<body>
+{% extends "main.html" %}
+{% block content %}
+{% include "header.html" %}
     <div class = 'pane'>
         <div class = 'header'>
             <h1>{{ foodclass.name }}</h1>
         </div>
 
-        <a href = #>Create New Item</a>
+        <a href = "{{url_for('newFoodItem', foodclass_id = foodclass.id) }}">Create New Item</a>
 
         {% for i in items %}
         <div class = 'nameAndPrice'>
@@ -43,5 +39,4 @@
 
     </div>
     </div>
-</body>
-</html>
+{% endblock %}
