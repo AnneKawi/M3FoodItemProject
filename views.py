@@ -241,18 +241,35 @@ def newFoodItem(foodclass_id):
     else:
         return render_template('newFoodItem.html', foodclass_id = foodclass_id)
 
+@app.route('/Foodclasses/<int:foodclass_id>/<int:FoodItemID>/edit',
+           methods=['GET', 'POST'])
+def editFoodItem(foodclass_id, FoodItemID):
+    if 'username' not in login_session:
+        return redirect('/login')
 
-## Task 1: Create route for newMenuItem function here
-#@app.route('/restaurants//<int:restaurant_id>/new/', methods=['GET', 'POST']) # => Handling von GET & POST ermöglichen
-#def newMenuItem(restaurant_id):
-    #if request.method == 'POST':
-        #newItem = MenuItem(name= request.form['name'], restaurant_id = restaurant_id)
-        #session.add(newItem)
-        #session.commit()
-        #flash("new menu item created") # => adding a flash-message to the session (abgerufen werden sie in 'menu.html')
-        #return redirect(url_for('restaurantMenu', restaurant_id = restaurant_id))
-    #else:
-        #return render_template('newMenuItem.html', restaurant_id = restaurant_id)
+    editedItem = session.query(FoodItem).filter_by(id=FoodItemID).one()
+    if request.method == 'POST':
+        if request.form['name']:
+            editedItem.name = request.form['name']
+        if request.form['description']:
+            editedItem.description = request.form['description']
+        if request.form['price']:
+            editedItem.price = request.form['price']
+        if request.form['typical_size']:
+            editedItem.course = request.form['typical_size']
+        session.add(editedItem)
+        session.commit()
+        flash('Food Item {} Successfully Edited'.format(editedItem.name))
+        return redirect(url_for('SingleFoodClass', foodclass_id=foodclass_id))
+    else:
+        return render_template(
+            'editFoodItem.html', foodclass_id=foodclass_id, item=editedItem)
+
+
+#!#!#! zur späteren Verwendung eines if in den Htmls
+#                    <!-- {% if item.course == 'Appetizer'%}checked{%endif%} -->
+
+
 
 ## Task 2: Create route for editMenuItem function here
 #@app.route('/restaurants/<int:restaurant_id>/<int:MenuID>/edit',
