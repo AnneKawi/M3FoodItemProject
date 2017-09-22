@@ -28,7 +28,7 @@ session = DBSession()
 
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
-
+APPLICATION_NAME = "UdacFoodItems"
 
 #The API-Endpoints (GET-Request)
 @app.route('/foodclass/<int:foodclass_id>/food/JSON')
