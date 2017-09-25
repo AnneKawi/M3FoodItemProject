@@ -27,7 +27,7 @@
 
         {% for foodclass in foodclasses %}
         <div class = 'nameAndPrice'>
-            <a href="{{url_for('SingleFoodClass', foodclass_id = foodclass.id) }}" class = 'name'><p>{{foodclass.name}}</p></span>
+            <a href="{{url_for('SingleFoodClass', foodclass_id = foodclass.id) }}" class = 'name'><h2>{{foodclass.name}}</h2></span>
         </div>
 
 

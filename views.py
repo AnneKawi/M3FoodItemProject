@@ -46,11 +46,11 @@ def foodclassFoodItemJSON(foodclass_id, food_id):
     item = session.query(FoodItem).filter_by(id=food_id, foodclass_id=foodclass_id).one()
     return jsonify(FoodItem=item.serialize)
 
-
 @app.route('/foodclasses/JSON')
 def foodclassesJSON():
     foodclasses = session.query(FoodClass).all()
     return jsonify(foodclasses= [r.serialize for r in foodclasses])
+
 
 
 # User Helper Functions
@@ -167,7 +167,7 @@ def gconnect():
 
     output = ''
     output += '<h1>Welcome, {}!</h1>'.format(login_session['username'])
-    output += '<img src="{} " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '.format(login_session['picture'])
+    output += '<img src="{} " style = "width: 150px; height: 150px;border-radius: 75px;-webkit-border-radius: 75px;-moz-border-radius: 75px;"> '.format(login_session['picture'])
     flash("you are now logged in as %s" % login_session['username'])
     print "done!"
     return output
@@ -183,24 +183,20 @@ def gdisconnect():
     print 'In gdisconnect access token is %s', access_token
     print 'User name is: '
     print login_session['username']
-    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session['access_token']
-    h = httplib2.Http()
-    result = h.request(url, 'GET')[0]
-    print 'result is '
-    print result
-    if result['status'] == '200':
-        del login_session['access_token']
-        del login_session['gplus_id']
-        del login_session['username']
-        del login_session['email']
-        del login_session['picture']
-        response = make_response(json.dumps('Successfully disconnected.'), 200)
-        response.headers['Content-Type'] = 'application/json'
-        return response
-    else:
-        response = make_response(json.dumps('Failed to revoke token for given user.', 400))
-        response.headers['Content-Type'] = 'application/json'
-        return response
+
+    del login_session['access_token']
+    del login_session['gplus_id']
+    del login_session['username']
+    del login_session['email']
+    del login_session['picture']
+    html = '''<p>Successfully disconnected. Redirecting to catalog</p>
+    <script>
+        var timer = setTimeout(function() {
+            window.location='/'
+        }, 1500);
+    </script>'''
+
+    return html
 
 
 ##Making the normal Webpage
@@ -276,7 +272,6 @@ def editFoodItem(foodclass_id, FoodItemID):
         return render_template(
             'editFoodItem.html', foodclass_id=foodclass_id, item=editedItem, uname = getUserName())
 
-
 #delete a food item
 @app.route('/Foodclasses/<int:foodclass_id>/items/<int:FoodItemID>/delete', methods = ['GET','POST'])
 def deleteFoodItem(foodclass_id, FoodItemID):
@@ -291,11 +286,20 @@ def deleteFoodItem(foodclass_id, FoodItemID):
     else:
         return render_template('deleteFoodItem.html', foodclass_id=foodclass_id, item = itemToDelete, uname = getUserName())
 
+#update need_to_shop
+@app.route('/Update_fooditem/<int:foodclass_id>/<int:FoodItemID>/', methods=['GET', 'POST'])
+def update_Fooditem(foodclass_id, FoodItemID):
+    if 'username' not in login_session:
+        return redirect('/login')
 
-#!#!#! zur späteren Verwendung eines if in den Htmls
-#                    <!-- {% if item.course == 'Appetizer'%}checked{%endif%} -->
-
-
+    editedItem = session.query(FoodItem).filter_by(id=FoodItemID).one()
+    if request.method == 'POST':
+        if request.form['need_to_shop']:
+            editedItem.need_to_shop = request.form['need_to_shop']
+        session.add(editedItem)
+        session.commit()
+        flash('Need_to_shop for food item {} was successfully updated'.format(editedItem.name))
+        return redirect(url_for('SingleFoodClass', foodclass_id=foodclass_id))
 
 if __name__ == '__main__':
     app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))

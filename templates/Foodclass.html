@@ -21,10 +21,19 @@
             <span class = 'typical size'>Typical Size: {{i.typical_size}}</span>
         </div>
 
+        {% if uname != '' %}
+        <div class="needToShopField">
+            <form action="{{url_for('update_Fooditem', foodclass_id = foodclass.id, FoodItemID = i.id) }}" method = "post">
+                <label for="need_to_shop"><p>We need to buy:</p></label>
+                <input class="text-right" type ="number"  name="need_to_shop" value="{{i.need_to_shop}}">
+                <button type="submit" class="btn-shop btn-default" id="submit" type="submit">update</button>
+            </form>
 
-        <div>
-            <span class = 'need_to_shop'><p>We need to buy: {{i.need_to_shop}} </p></span>
         </div>
+        {% else %}
+            <span class = 'need-to-shop'><p>We need to buy: {{i.need_to_shop}}</p></span>
+        {% endif %}
+
 
         {% if uname != '' %}
         <div class = "editdeletepane">
