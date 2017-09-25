@@ -17,7 +17,6 @@ from oauth2client.client import FlowExchangeError
 import httplib2
 import json
 from flask import make_response
-import requests
 
 
 auth = HTTPBasicAuth()
