@@ -13,7 +13,7 @@ installed on your machine
 
 ## get the website up and running
 - clone the repository to your machine
-- run **python database_setup.py** to initialzize the database
+- run **python database_setup.py** to initialize the database
 - run **python basicdata.py** to populate the db
 - run **python views.py** to start the server
 - runs in your favorite Webbrowser on **http://localhost:8000/**
