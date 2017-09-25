@@ -1,4 +1,4 @@
-#Food-Shopping-Website
+# Food-Shopping-Website
 
 A small website where we can catalog the items we buy for food and can register, how many we need to buy. Though in order to make any change in the data, you need to log in with your Google-account.
 
