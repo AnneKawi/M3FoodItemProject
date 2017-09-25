@@ -65,7 +65,6 @@ class FoodClass(Base):
             }
 
 
-
 class FoodItem(Base):
     __tablename__ = 'fooditem'
 

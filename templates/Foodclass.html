@@ -21,6 +21,7 @@
             <span class = 'typical size'>Typical Size: {{i.typical_size}}</span>
         </div>
 
+        <!-- changes in Need-to-shop-number and editing or deleting Items is only possible when logged in -->
         {% if uname != '' %}
         <div class="needToShopField">
             <form action="{{url_for('update_Fooditem', foodclass_id = foodclass.id, FoodItemID = i.id) }}" method = "post">

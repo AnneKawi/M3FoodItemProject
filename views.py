@@ -204,7 +204,6 @@ def gdisconnect():
 @app.route('/catalog/')
 def Catalog():
     foodclasses = session.query(FoodClass).all()
-    #items = session.query(FoodItem).filter_by(foodclass_id=foodclass.id)
     return render_template('catalog.html', foodclasses = foodclasses, uname = getUserName())
 
 #show items of a single foodclass
