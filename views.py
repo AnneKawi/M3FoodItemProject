@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, jsonify, request, url_for, abort, g, render_template, redirect, flash
+from flask import Flask, jsonify, request, url_for, abort, g
+from flask import render_template, redirect, flash
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
@@ -34,7 +35,7 @@ CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
 APPLICATION_NAME = "UdacFoodItems"
 
-#The API-Endpoints (GET-Request)
+# The API-Endpoints (GET-Request)
 @app.route('/foodclass/<int:foodclass_id>/food/JSON')
 def foodclassFoodJSON(foodclass_id):
     foodclass = session.query(FoodClass).filter_by(id=foodclass_id).one()
@@ -43,14 +44,14 @@ def foodclassFoodJSON(foodclass_id):
 
 @app.route('/foodclass/<int:foodclass_id>/food/<int:food_id>/JSON')
 def foodclassFoodItemJSON(foodclass_id, food_id):
-    item = session.query(FoodItem).filter_by(id=food_id, foodclass_id=foodclass_id).one()
+    item = session.query(FoodItem).filter_by(id=food_id,
+                                        foodclass_id=foodclass_id).one()
     return jsonify(FoodItem=item.serialize)
 
 @app.route('/foodclasses/JSON')
 def foodclassesJSON():
     foodclasses = session.query(FoodClass).all()
-    return jsonify(foodclasses= [r.serialize for r in foodclasses])
-
+    return jsonify(foodclasses=[r.serialize for r in foodclasses])
 
 
 # User Helper Functions
@@ -79,37 +80,38 @@ def getUserName():
     else:
         return ''
 
-# Create anti-forgery state token => mit jedem neuen Login wird dem User ein anderer Token zugeordnet - welcher hilft, den Nutzer als er selbst zu identifizieren
+# Create anti-forgery state token on every new login
 @app.route('/login')
 def showLogin():
-    #Random String generieren (mit Großbuchstaben und Zahlen)
+    # Generate radom string with uppercase letters & numbers
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in xrange(32))
-    #diesen String in der login-session als state speichern
+    # save that string as state in login_session
     login_session['state'] = state
-    #render login_template
+    # render login_template
     return render_template('login.html', STATE=state)
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
-    # Validate state token - if that token is invalid it will stop talking to the client (thus protecting it and the server)
+    # Validate state token - if that token is invalid it will stop
+    # talking to the client (thus protecting it and the server)
     if request.args.get('state') != login_session['state']:
         response = make_response(json.dumps('Invalid state parameter.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
-    code = request.data #der komplette id_token mit allen Infos
+    code = request.data  # the complete id_token with all info
 
     # check des id_token gegen die client_secrets Daten
     from oauth2client import client, crypt
     try:
         idinfo = client.verify_id_token(code, CLIENT_ID)
-        #auf korrekten issuer prüfen
-        if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
-            response = make_response(
-            json.dumps("Wrong issuer."), 401)
+        # check for correct issuer
+        if idinfo['iss'] not in ['accounts.google.com',
+                                 'https://accounts.google.com']:
+            response = make_response(json.dumps("Wrong issuer."), 401)
             response.headers['Content-Type'] = 'application/json'
             return response
-        #gplus-ID rausfischen
+        # fetch gplus-ID
         gplus_id = idinfo['sub']
     except crypt.AppIdentityError:
         # Verify that the access token is used for the intended user.
@@ -119,7 +121,7 @@ def gconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
-    # Online-Check that the id_token is valid. - returns a nice json-dic with the data in the token
+    # Online-Check that the id_token is valid. - returns a nice json-dic
     access_token = code
     url = ('https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=%s'
            % access_token)
@@ -164,10 +166,11 @@ def gconnect():
         user_id = createUser(login_session)
     login_session['user_id'] = user_id
 
-
     output = ''
     output += '<h1>Welcome, {}!</h1>'.format(login_session['username'])
-    output += '<img src="{} " style = "width: 150px; height: 150px;border-radius: 75px;-webkit-border-radius: 75px;-moz-border-radius: 75px;"> '.format(login_session['picture'])
+    output += '''<img src="{} " style = "width: 150px; height: 150px;
+               border-radius: 75px;-webkit-border-radius: 75px;
+               -moz-border-radius: 75px;"> '''.format(login_session['picture'])
     flash("you are now logged in as %s" % login_session['username'])
     print "done!"
     return output
@@ -190,63 +193,70 @@ def gdisconnect():
     del login_session['email']
     del login_session['picture']
     html = '''<p>Successfully disconnected. Redirecting to catalog</p>
-    <script>
-        var timer = setTimeout(function() {
-            window.location='/'
-        }, 1500);
-    </script>'''
+            <script>
+                var timer = setTimeout(function() {
+                    window.location='/'
+                }, 1500);
+            </script>'''
 
     return html
 
 
-##Making the normal Webpage
+# Making the normal Webpage
 @app.route('/')
 @app.route('/catalog/')
 def Catalog():
     foodclasses = session.query(FoodClass).all()
-    return render_template('catalog.html', foodclasses = foodclasses, uname = getUserName())
+    return render_template('catalog.html', foodclasses=foodclasses, uname=getUserName())
 
-#show items of a single foodclass
+# show items of a single foodclass
 @app.route('/Foodclasses/<int:foodclass_id>/')
 def SingleFoodClass(foodclass_id):
     foodclass = session.query(FoodClass).filter_by(id=foodclass_id).one()
     items = session.query(FoodItem).filter_by(foodclass_id=foodclass.id).all()
-    return render_template('Foodclass.html', foodclass = foodclass, items = items, uname = getUserName())
+    return render_template('Foodclass.html', foodclass=foodclass,
+                           items=items, uname=getUserName())
 
-#create new food class
+# create new food class
 @app.route('/Foodclasses/NewClass/', methods=['GET', 'POST'])
 def NewFoodClass():
-  if 'username' not in login_session:
-      return redirect('/login')
-  if request.method == 'POST':
-      foodclass = FoodClass(name = request.form['name'], creator_id=login_session['user_id'])
-      session.add(foodclass)
-      flash('New Foodclass %s Successfully Created' % foodclass.name)
-      session.commit()
-      return redirect(url_for('Catalog'))
-  else:
-      return render_template('newFoodClass.html', uname = getUserName())
+    if 'username' not in login_session:
+        return redirect('/login')
+    if request.method == 'POST':
+        foodclass = FoodClass(name=request.form['name'],
+                              creator_id=login_session['user_id'])
+        session.add(foodclass)
+        flash('New Foodclass %s Successfully Created' % foodclass.name)
+        session.commit()
+        return redirect(url_for('Catalog'))
+    else:
+        return render_template('newFoodClass.html', uname=getUserName())
 
-#create new food item
-@app.route('/Foodclasses/<int:foodclass_id>/new/', methods=['GET', 'POST']) # => Handling von GET & POST ermöglichen
+# create new food item
+@app.route('/Foodclasses/<int:foodclass_id>/new/', methods=['GET', 'POST'])
 def newFoodItem(foodclass_id):
     if 'username' not in login_session:
         return redirect('/login')
 
     if request.method == 'POST':
         foodclass = session.query(FoodClass).filter_by(id=foodclass_id).one()
-        #careful to only insert returns that actually have a name to it
+        # careful to only insert returns that actually have a name to it
         if request.form['name']:
-            newItem = FoodItem(name=request.form['name'], description=request.form['description'], price=request.form['price'],
-                               typical_size=request.form['typical_size'], need_to_shop=0, foodclass=foodclass, creator_id=login_session['user_id'])
+            newItem = FoodItem(name=request.form['name'],
+                               description=request.form['description'],
+                               price=request.form['price'],
+                               typical_size=request.form['typical_size'],
+                               need_to_shop=0, foodclass=foodclass,
+                               creator_id=login_session['user_id'])
             session.add(newItem)
             session.commit()
-            flash("Food item {} was successfully created".format(request.form['name'])) # => adding a flash-message to the session (abgerufen werden sie in 'catalog.html')
-        return redirect(url_for('SingleFoodClass', foodclass_id = foodclass_id))
+            flash("Food item {} was successfully created".format(request.form['name']))
+        return redirect(url_for('SingleFoodClass', foodclass_id=foodclass_id))
     else:
-        return render_template('newFoodItem.html', foodclass_id = foodclass_id, uname = getUserName())
+        return render_template('newFoodItem.html', foodclass_id=foodclass_id,
+                               uname=getUserName())
 
-#edit a food item
+# edit a food item
 @app.route('/Foodclasses/<int:foodclass_id>/<int:FoodItemID>/edit',
            methods=['GET', 'POST'])
 def editFoodItem(foodclass_id, FoodItemID):
@@ -268,25 +278,28 @@ def editFoodItem(foodclass_id, FoodItemID):
         flash('Food item {} was successfully edited'.format(editedItem.name))
         return redirect(url_for('SingleFoodClass', foodclass_id=foodclass_id))
     else:
-        return render_template(
-            'editFoodItem.html', foodclass_id=foodclass_id, item=editedItem, uname = getUserName())
+        return render_template('editFoodItem.html', foodclass_id=foodclass_id,
+                               item=editedItem, uname=getUserName())
 
-#delete a food item
-@app.route('/Foodclasses/<int:foodclass_id>/items/<int:FoodItemID>/delete', methods = ['GET','POST'])
+# delete a food item
+@app.route('/Foodclasses/<int:foodclass_id>/items/<int:FoodItemID>/delete',
+           methods=['GET', 'POST'])
 def deleteFoodItem(foodclass_id, FoodItemID):
     if 'username' not in login_session:
         return redirect('/login')
-    itemToDelete = session.query(FoodItem).filter_by(id = FoodItemID).one()
+    itemToDelete = session.query(FoodItem).filter_by(id=FoodItemID).one()
     if request.method == 'POST':
         session.delete(itemToDelete)
         session.commit()
         flash('Food item {} successfully deleted'.format(itemToDelete.name))
         return redirect(url_for('SingleFoodClass', foodclass_id=foodclass_id))
     else:
-        return render_template('deleteFoodItem.html', foodclass_id=foodclass_id, item = itemToDelete, uname = getUserName())
+        return render_template('deleteFoodItem.html', foodclass_id=foodclass_id,
+                               item=itemToDelete, uname=getUserName())
 
-#update need_to_shop
-@app.route('/Update_fooditem/<int:foodclass_id>/<int:FoodItemID>/', methods=['GET', 'POST'])
+# update need_to_shop, then redirect back to foodlist
+@app.route('/Update_fooditem/<int:foodclass_id>/<int:FoodItemID>/',
+           methods=['POST'])
 def update_Fooditem(foodclass_id, FoodItemID):
     if 'username' not in login_session:
         return redirect('/login')
@@ -300,7 +313,9 @@ def update_Fooditem(foodclass_id, FoodItemID):
         flash('Need_to_shop for food item {} was successfully updated'.format(editedItem.name))
         return redirect(url_for('SingleFoodClass', foodclass_id=foodclass_id))
 
+
 if __name__ == '__main__':
-    app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
+    app.secret_key = ''.join(random.choice(string.ascii_uppercase +
+                             string.digits) for x in xrange(32))
     app.debug = True
     app.run(host='0.0.0.0', port=8000)
